@@ -102,13 +102,13 @@ int main() {
             }
         }
     }
-    timer_forward_end = clock();
+    timer_forward_end = MPI_Wtime();
 
     ////////////////////// Gaussian elimination (END) ////////////////////
 
 
     ////////////////////// Back substitution (BEGIN) ////////////////////
-    timer_backward_begin = clock();
+    timer_backward_begin = MPI_Wtime();
 
     if (my_id == ROOT_ID) {
         x[N - 1] = b[N - 1] / A[N - 1][N - 1];
@@ -121,7 +121,7 @@ int main() {
             x[i] = (b[i] - sum) / A[i][i];
         }
 
-        timer_backward_end = clock();
+        timer_backward_end = MPI_Wtime();
     }
 
     ////////////////////// Back substitution (END) ////////////////////
@@ -134,8 +134,8 @@ int main() {
         }
         cout << endl;
 
-        cout << "Gaussian elimination time: " << (double) (timer_forward_end - timer_forward_begin) / CLOCKS_PER_SEC << endl;
-        cout << "Back substitution time: " << (double) (timer_backward_end - timer_backward_begin) / CLOCKS_PER_SEC << endl;
+        cout << "Gaussian elimination time: " << timer_forward_end - timer_forward_begin << endl;
+        cout << "Back substitution time: " << timer_backward_end - timer_backward_begin << endl;
     }
 
     MPI_Finalize();
