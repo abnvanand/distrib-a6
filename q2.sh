@@ -1,3 +1,3 @@
-mpic++ main.cpp
-mpirun --oversubscribe -np 4 a.out < q1.in.txt
+mpic++ q2.cpp -o q2.out
+mpirun --oversubscribe -np 4 q2.out < "$1"
 
