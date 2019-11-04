@@ -18,11 +18,9 @@ int main() {
 
     double A[MAX_LEN][MAX_LEN], b[MAX_LEN], x[MAX_LEN];
 
-    // TODO: Understand usage
     double c[MAX_LEN];
     int map[MAX_LEN];
     double sum = 0.0;
-    // STOPSHIP
 
 
     int N, Nplus1;
@@ -136,6 +134,7 @@ int main() {
 
         cout << "Gaussian elimination time: " << timer_forward_end - timer_forward_begin << endl;
         cout << "Back substitution time: " << timer_backward_end - timer_backward_begin << endl;
+        cout << "Total time: " << timer_backward_end - timer_forward_begin << endl;
     }
 
     MPI_Finalize();
