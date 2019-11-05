@@ -19,7 +19,7 @@ int main() {
     double A[MAX_LEN][MAX_LEN], b[MAX_LEN], x[MAX_LEN];
 
     double c[MAX_LEN];
-    int map[MAX_LEN];
+    int my_portion[MAX_LEN];
     double sum = 0.0;
 
 
@@ -27,9 +27,6 @@ int main() {
 
     int my_id, n_procs;
     double timer_forward_begin, timer_forward_end, timer_backward_begin, timer_backward_end = 0;
-
-//    vector<vector<double>> A(N, vector<double>(N, 0));
-//    vector<double> b(N, 0);
 
     MPI_Comm_rank(MPI_COMM_WORLD, &my_id);
     MPI_Comm_size(MPI_COMM_WORLD, &n_procs);
@@ -69,7 +66,7 @@ int main() {
     timer_forward_begin = MPI_Wtime();
 
     // Broadcast matrix A
-    // NOTE: don't broadcast count = N*N bcoz each array size is actually MAX_LEN
+    // NOTE: don't broadcast count =                for (int j = 0; j < N; j++) { N*N bcoz each array size is actually MAX_LEN
     // So 1st part will be broadcasted correctly but rest of the procs will get garbage part of the array
     MPI_Bcast(&A[0][0], MAX_LEN * MAX_LEN, MPI_DOUBLE, ROOT_ID, MPI_COMM_WORLD);
 
@@ -79,24 +76,27 @@ int main() {
 
     // Map which part to be processed by which process
     for (int i = 0; i < N; i++) {
-        map[i] = i % n_procs;
+        my_portion[i] = i % n_procs;
     }
 
     for (int k = 0; k < N; k++) {
-        MPI_Bcast(&A[k][k], N - k, MPI_DOUBLE, map[k], MPI_COMM_WORLD);
-        MPI_Bcast(&b[k], 1, MPI_DOUBLE, map[k], MPI_COMM_WORLD);
+        MPI_Bcast(&b[k], 1, MPI_DOUBLE, my_portion[k], MPI_COMM_WORLD);
+        MPI_Bcast(&A[k][k], N - k, MPI_DOUBLE, my_portion[k], MPI_COMM_WORLD);
+
         for (int i = k + 1; i < N; i++) {
-            if (map[i] == my_id) { // check whether current process should compute this part
-                c[i] = A[i][k] / A[k][k];
+            if (my_id == my_portion[i]) {
+                // check whether current process should compute this part
+                c[i] = A[i][k];
+                c[i] /= A[k][k];
             }
         }
 
         for (int i = k + 1; i < N; i++) {
-            if (map[i] == my_id) {
+            if (my_portion[i] == my_id) {
                 for (int j = 0; j < N; j++) {
-                    A[i][j] = A[i][j] - (c[i] * A[k][j]);
+                    A[i][j] -= (c[i] * A[k][j]);
                 }
-                b[i] = b[i] - (c[i] * b[k]);
+                b[i] -= (c[i] * b[k]);
             }
         }
     }
@@ -109,18 +109,20 @@ int main() {
     timer_backward_begin = MPI_Wtime();
 
     if (my_id == ROOT_ID) {
-        x[N - 1] = b[N - 1] / A[N - 1][N - 1];
+        x[N - 1] = b[N - 1];
+        x[N - 1] /= A[N - 1][N - 1];
+
         for (int i = N - 2; i >= 0; i--) {
             sum = 0;
 
             for (int j = i + 1; j < N; j++) {
-                sum = sum + A[i][j] * x[j];
+                sum += x[j] * A[i][j];
             }
-            x[i] = (b[i] - sum) / A[i][i];
+            x[i] = (b[i] - sum);
+            x[i] /= A[i][i];
         }
-
-        timer_backward_end = MPI_Wtime();
     }
+    timer_backward_end = MPI_Wtime();
 
     ////////////////////// Back substitution (END) ////////////////////
     MPI_Barrier(MPI_COMM_WORLD);
